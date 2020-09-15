@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link rel="stylesheet" href="css/flatpickr.min.css">
+    <style>
+        /*utility*/
+        .mb-1 {
+            margin-bottom: 1rem;
+        }
+        .mb-3 {
+            margin-bottom: 3rem;
+        }
+        .invisible {
+            display: none;
+        }
+
+        /*component*/
+        .period {
+            position: relative;
+            display: inline-block;
+        }
+        .period .period-start, .period .period-end {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<main>
+
+    <h1>업무 기간 관리</h1>
+
+    <div id="app">
+
+        <button class="mb-3" v-on:click="initPeriodData">초기화</button>
+
+        <div class="mb-3">
+            <div class="period">
+                <div class="period-start">
+                    <label class="invisible">시작일</label>
+                    <input type="hidden" v-model="newPeriod.start">
+                </div>
+                <div class="period-end">
+                    <label class="invisible">종료일</label>
+                    <input type="hidden" v-model="newPeriod.end">
+                </div>
+                <input id="new-period-add-btn" type="text" v-on:flatpickr_data_change="onChangedFlatpickr">
+            </div>
+            <button v-on:click="addNewPeriod">추가</button>
+        </div>
+
+        <div>
+            <ul>
+                <li v-for="period in periods">
+                    <div>
+                        <div class="period">
+                            <div class="period-start">
+                                <label class="invisible">시작일</label>
+                                <input type="hidden" v-model="period.start">
+                            </div>
+                            <div class="period-end">
+                                <label class="invisible">종료일</label>
+                                <input type="hidden" v-model="period.end">
+                            </div>
+                        </div>
+                        <input v-bind:id="'flatpickr_' + period.start + '_' + period.end" type="text" v-on:flatpickr_data_change="onChangedFlatpickr">
+                        <button v-on:click="removePeriod(period)">삭제</button>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+</main>
+
+<script src="js/vue.js"></script>
+<script src="js/flatpickr.js"></script>
+<script src="js/moment.js"></script>
+<script>
+    function makeFlatpickr(element, start, end) {
+        flatpickr(element, {
+            mode: "range",
+            defaultDate: [start, end],
+            onValueUpdate: function (selectedDates, dateStr, instance) {
+                var event = new CustomEvent("flatpickr_data_change", { detail: {
+                    start: moment(selectedDates[0]).format("YYYY-MM-DD"),
+                    end: moment(selectedDates[1]).format("YYYY-MM-DD"),
+                }})
+                element.dispatchEvent(event);
+            }
+        });
+    }
+
+    var app = new Vue({
+        el: '#app',
+        data: {
+            origin: [
+                { id: 1, start: "2020-01-01", end: "2020-01-31" },
+                { id: 2, start: "2020-02-01", end: "2020-02-31" },
+                { id: 3, start: "2020-03-01", end: "2020-03-31" },
+            ],
+            periods: [
+                { id: 1, start: "2020-01-01", end: "2020-01-31" },
+                { id: 2, start: "2020-02-01", end: "2020-02-31" },
+                { id: 3, start: "2020-03-01", end: "2020-03-31" },
+            ],
+            newPeriod: { id: null, start: null, end: null }
+        },
+        mounted: function () {
+            makeFlatpickr(document.querySelector("#new-period-add-btn"))
+            this.applyFlatpickr()
+        },
+        updated: function () {
+            this.applyFlatpickr()
+        },
+        methods: {
+            removePeriod: function (period) {
+                this.periods.splice(this.periods.indexOf(period), 1)
+            },
+            initPeriodData: function () {
+                this.periods = this.origin.slice(0)
+            },
+            addNewPeriod: function () {
+                if ( ! moment(this.newPeriod.start).isValid() || ! moment(this.newPeriod.end).isValid()) {
+                    alert("잘못된입력")
+                    this.initNewPeriodInputValues();
+                    return
+                }
+
+                var duplicatedPeriod = false;
+                this.periods.forEach((period) => {
+                    if (this.newPeriod.start === period.start && this.newPeriod.end === period.end ) {
+                        duplicatedPeriod = true;
+                    }
+                })
+
+                if (duplicatedPeriod) {
+                    alert("duplicatedPeriod")
+                    this.initNewPeriodInputValues();
+                    return
+                }
+
+                this.periods.push({
+                    id: this.newPeriod.id, start: this.newPeriod.start, end: this.newPeriod.end
+                });
+
+                this.initNewPeriodInputValues();
+            },
+            initNewPeriodInputValues: function () {
+                this.newPeriod.start = null;
+                this.newPeriod.end = null;
+                document.querySelector("#new-period-add-btn")._flatpickr.clear()
+            },
+            onChangedFlatpickr: function (event) {
+                this.newPeriod.start = event.detail.start
+                this.newPeriod.end = event.detail.end
+            },
+            applyFlatpickr: function () {
+                this.periods.forEach((period) => {
+                    makeFlatpickr(document.querySelector("#flatpickr_" + period.start + '_' + period.end), period.start, period.end)
+                })
+            }
+        }
+    })
+</script>
+</body>
+</html>
